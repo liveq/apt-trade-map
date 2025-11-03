@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>BAAL 아파트 실거래가 조회 | 전국 부동산 실시간 시세 지도</title>
+    <meta name="title" content="BAAL 아파트 실거래가 조회 | 전국 부동산 실시간 시세 지도">
+    <meta name="description" content="대한민국 전국 아파트 실거래가를 지도에서 실시간으로 확인하세요. 공공데이터 기반 무료 부동산 시세 조회 서비스. 지역별, 기간별 아파트 매매 거래 정보를 한눈에 확인할 수 있습니다.">
+    <meta name="keywords" content="아파트 실거래가, 부동산 시세, 아파트 매매가, 실거래가 조회, 부동산 정보, 아파트 가격, 주택 시세, 공공데이터, 국토교통부, 실시간 시세, 부동산 지도, 아파트 검색">
+    <meta name="author" content="BAAL">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="Korean">
+    <meta name="revisit-after" content="7 days">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://apt.baal.co.kr/">
+    <meta property="og:title" content="BAAL 아파트 실거래가 조회 | 전국 부동산 실시간 시세 지도">
+    <meta property="og:description" content="대한민국 전국 아파트 실거래가를 지도에서 실시간으로 확인하세요. 공공데이터 기반 무료 부동산 시세 조회 서비스.">
+    <meta property="og:image" content="https://apt.baal.co.kr/og-image.png">
+    <meta property="og:site_name" content="BAAL 아파트 실거래가">
+    <meta property="og:locale" content="ko_KR">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://apt.baal.co.kr/">
+    <meta name="twitter:title" content="BAAL 아파트 실거래가 조회 | 전국 부동산 실시간 시세 지도">
+    <meta name="twitter:description" content="대한민국 전국 아파트 실거래가를 지도에서 실시간으로 확인하세요. 공공데이터 기반 무료 부동산 시세 조회 서비스.">
+    <meta name="twitter:image" content="https://apt.baal.co.kr/og-image.png">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://apt.baal.co.kr/">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "BAAL 아파트 실거래가",
+      "url": "https://apt.baal.co.kr",
+      "description": "대한민국 전국 아파트 실거래가를 지도에서 실시간으로 확인할 수 있는 무료 부동산 정보 서비스",
+      "applicationCategory": "Real Estate",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "KRW"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "BAAL",
+        "url": "https://baal.co.kr"
+      },
+      "provider": {
+        "@type": "Organization",
+        "name": "BAAL",
+        "url": "https://baal.co.kr"
+      },
+      "inLanguage": "ko-KR",
+      "featureList": [
+        "전국 아파트 실거래가 조회",
+        "지도 기반 시각화",
+        "지역별 검색",
+        "기간별 필터링",
+        "실시간 거래 정보"
+      ]
+    }
+    </script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&family=Playfair+Display:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- OpenLayers CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/map-layout.css">
+</head>
+<body class="map-layout">
+    <!-- Header -->
+    <header class="header-fixed">
+        <div class="header-content-inline">
+            <h1 class="logo-inline">
+                <span class="logo-text">BAAL</span>
+                <span class="logo-subtitle">아파트 실거래가</span>
+            </h1>
+            <nav class="nav-inline">
+                <a href="https://baal.co.kr" class="nav-link">홈으로</a>
+                <a href="https://baal.co.kr#tools" class="nav-link">다른 도구</a>
+                <button id="privacyBtn" class="nav-link">개인정보처리방침</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Search Bar (지도 위 오버레이) -->
+    <div class="search-bar-overlay">
+        <div class="search-bar-container">
+            <!-- 드롭다운 선택 -->
+            <div id="searchForm" class="search-form-inline">
+                <!-- SearchForm Component will be rendered here -->
+            </div>
+
+            <!-- 구분선 -->
+            <div class="divider-or">|</div>
+
+            <!-- 주소 입력 -->
+            <div class="address-search-field">
+                <label class="form-label-inline">🔍</label>
+                <input
+                    type="text"
+                    id="addressInput"
+                    class="address-input"
+                    placeholder="주소 검색 (예: 강남구 역삼동)"
+                />
+            </div>
+
+            <!-- 버튼 그룹 -->
+            <div class="button-group">
+                <button id="searchBtn" class="btn-search" disabled>
+                    <span>검색</span>
+                </button>
+                <button id="resetBtn" class="btn-reset">
+                    <span>초기화</span>
+                </button>
+            </div>
+
+            <!-- 패널 토글 버튼 -->
+            <button id="togglePanelBtn" class="btn-toggle-panel hidden">
+                <span>☰</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Map (전체 화면) -->
+    <div id="map" class="map-fullscreen"></div>
+
+    <!-- Map Controls -->
+    <div class="map-controls-overlay">
+        <button id="resetMap" class="btn-control">
+            <span>지도 초기화</span>
+        </button>
+        <button id="myLocation" class="btn-control">
+            <span>내 위치</span>
+        </button>
+    </div>
+
+    <!-- Right Slide Panel (마커 클릭시 나타남) -->
+    <div id="rightPanel" class="right-panel">
+        <!-- Tabs Section -->
+        <div id="tabsSection" class="tabs-section">
+            <div class="tabs-container" id="tabsContainer">
+                <button class="tab-item active" data-tab="all">전체 목록</button>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <section id="statsSection" class="stats-section-panel">
+            <div class="stats-grid-panel">
+                <div class="stat-item">
+                    <div class="stat-label">총 거래</div>
+                    <div class="stat-value-small" id="totalCount">0건</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">평균가</div>
+                    <div class="stat-value-small" id="avgPrice">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">최고가</div>
+                    <div class="stat-value-small" id="maxPrice">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">최저가</div>
+                    <div class="stat-value-small" id="minPrice">0</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filter & Sort Controls -->
+        <div class="panel-controls">
+            <select id="dongFilter" class="select-panel" style="margin-bottom: 8px;">
+                <option value="">전체 동</option>
+            </select>
+            <select id="sortSelect" class="select-panel">
+                <option value="date-desc">최신순</option>
+                <option value="date-asc">오래된순</option>
+                <option value="price-desc">가격 높은순</option>
+                <option value="price-asc">가격 낮은순</option>
+                <option value="area-desc">면적 큰순</option>
+                <option value="area-asc">면적 작은순</option>
+            </select>
+        </div>
+
+        <!-- Results List -->
+        <div id="resultList" class="result-list-panel">
+            <!-- ResultList Component will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Panel Toggle Button (Floating) -->
+    <button id="panelToggle" class="panel-toggle-floating">
+        <span class="toggle-icon">›</span>
+    </button>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p>데이터를 불러오는 중...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="empty-overlay hidden">
+        <div class="empty-icon-text">검색 결과 없음</div>
+        <h3>검색 결과가 없습니다</h3>
+        <p>다른 지역이나 기간을 선택해보세요</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="error-overlay hidden">
+        <div class="error-icon-text">오류 발생</div>
+        <h3>오류가 발생했습니다</h3>
+        <p id="errorMessage"></p>
+        <button id="retryBtn" class="btn-primary">다시 시도</button>
+    </div>
+
+    <!-- Privacy Modal -->
+    <div id="privacyModal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">×</button>
+            <h2 class="modal-title">개인정보처리방침</h2>
+            <div class="modal-body">
+                <h3>1. 개인정보의 처리 목적</h3>
+                <p>BAAL(이하 "회사")은 사용자가 브라우저에서 직접 공공데이터를 조회하는 무료 온라인 도구를 제공합니다. 회사는 <strong>어떠한 개인정보도 수집하지 않습니다.</strong></p>
+
+                <h3>2. 처리하는 개인정보 항목</h3>
+                <p><strong>없음</strong> - 모든 데이터 조회는 사용자의 브라우저 내에서만 이루어지며, 서버로 전송되지 않습니다.</p>
+
+                <h3>3. 개인정보의 처리 및 보유기간</h3>
+                <p>회사는 개인정보를 수집하지 않으므로 보유하지 않습니다.</p>
+
+                <h3>4. 쿠키(Cookie) 사용</h3>
+                <p>본 웹사이트는 Google AdSense 광고 서비스를 사용할 수 있습니다. Google은 사용자의 관심사에 맞는 광고를 제공하기 위해 쿠키를 사용할 수 있습니다.</p>
+
+                <h3>5. 개인정보 보호책임자</h3>
+                <p>이메일: <a href="mailto:summon@baal.co.kr">summon@baal.co.kr</a></p>
+
+                <p class="modal-footer-text">시행일자: 2025년 1월 24일</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- OpenLayers JS -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# robots.txt for apt.baal.co.kr
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://apt.baal.co.kr/sitemap.xml
+
+# Crawl-delay (optional)
+Crawl-delay: 1
+
+# Block sensitive paths (if any)
+# Disallow: /api/
+# Disallow: /admin/
