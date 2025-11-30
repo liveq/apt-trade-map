@@ -5,6 +5,47 @@
 import { REGION_DATA, getRecentMonths } from '../utils/helpers.js';
 import { DONG_DATA } from '../../data/dongData.js';
 
+/**
+ * 동 이름으로 시군구 코드 역방향 검색
+ * @param {string} dongName - 검색할 동 이름
+ * @returns {Array} 매칭된 시군구 정보 배열 [{sigunguCode, sigunguName, sidoCode, sidoName, dongName}]
+ */
+function findSigunguByDong(dongName) {
+  const results = [];
+
+  for (const [sigunguCode, dongList] of Object.entries(DONG_DATA)) {
+    for (const dong of dongList) {
+      // 정확히 일치하거나, 입력값이 동 이름에 포함되는 경우
+      if (dong === dongName || dong.includes(dongName) || dongName.includes(dong)) {
+        // 시도 코드 추출 (앞 2자리)
+        const sidoCode = sigunguCode.substring(0, 2);
+
+        // 시도 이름 찾기
+        const sido = REGION_DATA.sido.find(s => s.code === sidoCode);
+
+        // 시군구 이름 찾기
+        let sigunguName = '';
+        const sigunguList = REGION_DATA.sigungu[sidoCode];
+        if (sigunguList) {
+          const sigungu = sigunguList.find(s => s.code === sigunguCode);
+          if (sigungu) sigunguName = sigungu.name;
+        }
+
+        results.push({
+          sigunguCode,
+          sigunguName,
+          sidoCode,
+          sidoName: sido ? sido.name : '',
+          dongName: dong
+        });
+        break; // 같은 시군구에서 중복 매칭 방지
+      }
+    }
+  }
+
+  return results;
+}
+
 export class SearchForm {
   constructor(containerId, onSearch) {
     this.container = document.getElementById(containerId);
@@ -209,6 +250,12 @@ export class SearchForm {
     const months = getRecentMonths(12);
     document.getElementById('dealYmdSelect').value = months[0].value;
 
+    // 주소 입력창 초기화
+    const addressInput = document.getElementById('addressInput');
+    if (addressInput) {
+      addressInput.value = '';
+    }
+
     this.state = {
       sido: '',
       sigungu: '',
@@ -243,7 +290,7 @@ export class SearchForm {
 
   parseAndSetAddress(input) {
     // 주소 파싱 로직
-    // 예: "강남구 역삼동" 또는 "서울 강남구 역삼동"
+    // 예: "강남구 역삼동" 또는 "서울 강남구 역삼동" 또는 "대치동"
 
     // 전체 시/도, 구/군, 동 목록에서 매칭
     let foundSido = null;
@@ -298,6 +345,27 @@ export class SearchForm {
           foundDong = dong;
           break;
         }
+      }
+    }
+
+    // ★ 시/도, 구/군을 못 찾았지만 동 이름만 입력된 경우 역방향 검색
+    if (!foundSido && !foundSigungu) {
+      const dongMatches = findSigunguByDong(input.trim());
+
+      if (dongMatches.length > 0) {
+        // 첫 번째 매칭 결과 사용 (서울 우선 정렬)
+        const seoulFirst = dongMatches.sort((a, b) => {
+          if (a.sidoCode === '11' && b.sidoCode !== '11') return -1;
+          if (a.sidoCode !== '11' && b.sidoCode === '11') return 1;
+          return 0;
+        });
+
+        const match = seoulFirst[0];
+        foundSido = match.sidoCode;
+        foundSigungu = match.sigunguCode;
+        foundDong = match.dongName;
+
+        console.log(`[동 역방향 검색] "${input}" → ${match.sidoName} ${match.sigunguName} ${match.dongName}`);
       }
     }
 

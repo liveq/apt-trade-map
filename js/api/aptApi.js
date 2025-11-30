@@ -123,6 +123,7 @@ export function transformTrade(trade) {
     아파트명: trade.아파트,
     주소: address,
     법정동: trade.법정동,
+    시군구코드: trade.법정동시군구코드, // 동 좌표 조회용
     거래금액: parseInt(trade.거래금액.replace(/,/g, '')),
     거래금액_원본: trade.거래금액,
     전용면적: parseFloat(trade.전용면적),

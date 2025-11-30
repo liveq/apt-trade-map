@@ -5,6 +5,9 @@
 
 import { CONFIG } from '../config.js';
 import { REGION_COORDS } from '../../data/regionCoords.js';
+import { DONG_COORDS } from '../../data/dongCoords.js';
+import { REGION_DATA } from '../utils/helpers.js';
+import { batchGeocode } from '../api/geocodeApi.js';
 
 export class MapView {
   constructor(containerId, onMarkerClick) {
@@ -191,9 +194,10 @@ export class MapView {
   }
 
   /**
-   * 거래 마커 추가 (부동산 앱 스타일)
+   * 거래 마커 추가 (지오코딩 기반 - 정확한 위치)
+   * @param {string|boolean} viewMode - false: 전체 표시+뷰맞춤, 'keepView': 전체 표시+뷰유지
    */
-  async addTradeMarkers(trades, sigunguCode) {
+  async addTradeMarkers(trades, sigunguCode, viewMode = false) {
     if (!trades || trades.length === 0) {
       this.clearMarkers();
       return;
@@ -203,6 +207,23 @@ export class MapView {
 
     // 기본 좌표 (시군구 중심)
     const baseCoords = REGION_COORDS[sigunguCode] || REGION_COORDS['default'];
+
+    // viewMode에 따른 설정
+    const keepView = viewMode === 'keepView' || viewMode === true;
+
+    // 현재 화면 범위 (지오코딩 결과 필터링용)
+    const viewBounds = keepView ? this.getCurrentBounds() : null;
+    let expandedBounds = null;
+    if (viewBounds) {
+      const latPadding = (viewBounds.maxLat - viewBounds.minLat) * 0.3;
+      const lngPadding = (viewBounds.maxLng - viewBounds.minLng) * 0.3;
+      expandedBounds = {
+        minLng: viewBounds.minLng - lngPadding,
+        maxLng: viewBounds.maxLng + lngPadding,
+        minLat: viewBounds.minLat - latPadding,
+        maxLat: viewBounds.maxLat + latPadding
+      };
+    }
 
     // 같은 아파트별로 그룹화
     const groups = {};
@@ -217,40 +238,75 @@ export class MapView {
       groups[key].trades.push(trade);
     });
 
+    const groupList = Object.values(groups);
+    console.log(`[마커 생성] ${groupList.length}개 아파트 지오코딩 중...`);
+
+    // 지오코딩할 아파트 목록 생성
+    const geocodeItems = groupList.map(group => ({
+      id: `${group.representative.법정동}_${group.representative.아파트명}`,
+      address: `${group.representative.법정동} ${group.representative.아파트명}`
+    }));
+
+    // 병렬 지오코딩 실행
+    const geocodeResults = await batchGeocode(geocodeItems);
+    console.log(`[지오코딩 완료] ${geocodeResults.size}개 성공`);
+
+    // 마커 생성
     const features = [];
+    let inViewCount = 0;
 
-    // 각 그룹별로 마커 생성 (랜덤 오프셋으로 분산 배치)
-    Object.values(groups).forEach((group, index) => {
+    for (const group of groupList) {
       const trade = group.representative;
+      const tradeSigunguCode = trade.시군구코드 || sigunguCode;
+      const searchKey = `${trade.법정동} ${trade.아파트명}`;
 
-      // 기본 좌표에서 랜덤 오프셋 추가 (0.005도 = 약 500m)
-      const offset = 0.01;
-      const randomLat = baseCoords.lat + (Math.random() - 0.5) * offset;
-      const randomLng = baseCoords.lng + (Math.random() - 0.5) * offset;
+      // 지오코딩 결과 확인
+      let coords = geocodeResults.get(searchKey);
 
-      const feature = this.createPriceMarker(
-        { lng: randomLng, lat: randomLat },
-        trade,
-        group.trades.length
-      );
+      // 지오코딩 실패시 동 좌표 폴백
+      if (!coords) {
+        const dongKey = `${tradeSigunguCode}_${trade.법정동}`;
+        const dongCoords = DONG_COORDS[dongKey];
+        if (dongCoords) {
+          coords = { lat: dongCoords.lat, lng: dongCoords.lng };
+        } else {
+          const fallback = REGION_COORDS[tradeSigunguCode] || baseCoords;
+          coords = { lat: fallback.lat, lng: fallback.lng };
+        }
+      }
+
+      // keepView 모드면 화면 내 좌표만 표시
+      if (expandedBounds) {
+        if (coords.lng < expandedBounds.minLng || coords.lng > expandedBounds.maxLng ||
+            coords.lat < expandedBounds.minLat || coords.lat > expandedBounds.maxLat) {
+          continue;
+        }
+        inViewCount++;
+      }
+
+      const feature = this.createPriceMarker(coords, trade, group.trades.length);
       features.push(feature);
-    });
+    }
+
+    if (keepView) {
+      console.log(`[화면 필터링] ${groupList.length}개 → ${inViewCount}개 (화면 내)`);
+    }
 
     // 마커 레이어에 추가
     const source = this.markerLayer.getSource();
     source.addFeatures(features);
 
-    // 모든 마커가 보이도록 뷰 조정
-    if (features.length > 0) {
+    // keepView가 false일 때만 뷰 자동 조정
+    if (features.length > 0 && !keepView) {
       const extent = source.getExtent();
       this.map.getView().fit(extent, {
         padding: [80, 80, 80, 80],
-        maxZoom: 14,
+        maxZoom: 15,
         duration: 500
       });
     }
 
-    console.log(`${features.length}개 마커 표시 완료`);
+    console.log(`[마커 생성 완료] ${features.length}개 마커 표시`);
   }
 
   /**
@@ -401,22 +457,75 @@ export class MapView {
     const bounds = this.getCurrentBounds();
     const visibleRegions = [];
 
-    // REGION_COORDS에서 화면 안에 있는 시군구 찾기
+    // 화면 크기의 20%만큼 bounds 확장 (주변 시군구 일부 포함)
+    const latPadding = (bounds.maxLat - bounds.minLat) * 0.2;
+    const lngPadding = (bounds.maxLng - bounds.minLng) * 0.2;
+
+    const expandedBounds = {
+      minLng: bounds.minLng - lngPadding,
+      maxLng: bounds.maxLng + lngPadding,
+      minLat: bounds.minLat - latPadding,
+      maxLat: bounds.maxLat + latPadding
+    };
+
+    // REGION_COORDS에서 확장된 화면 안에 있는 시군구 찾기
     for (const [code, coords] of Object.entries(REGION_COORDS)) {
       if (code === 'default') continue;
 
-      // 시군구 좌표가 현재 화면 bounds 안에 있는지 확인
+      // 시군구 좌표가 확장된 bounds 안에 있는지 확인
       if (
-        coords.lng >= bounds.minLng &&
-        coords.lng <= bounds.maxLng &&
-        coords.lat >= bounds.minLat &&
-        coords.lat <= bounds.maxLat
+        coords.lng >= expandedBounds.minLng &&
+        coords.lng <= expandedBounds.maxLng &&
+        coords.lat >= expandedBounds.minLat &&
+        coords.lat <= expandedBounds.maxLat
       ) {
         visibleRegions.push(code);
       }
     }
 
+    // 그래도 없으면 가장 가까운 시군구 찾기
+    if (visibleRegions.length === 0) {
+      const nearestRegion = this.findNearestRegion();
+      if (nearestRegion) {
+        visibleRegions.push(nearestRegion);
+        console.log(`[화면 검색] 중심점 없음 → 가장 가까운 시군구: ${nearestRegion}`);
+      }
+    }
+
+    console.log(`[화면 검색] ${visibleRegions.length}개 시군구 검색 대상`);
     return visibleRegions;
+  }
+
+  /**
+   * 화면 중앙에서 가장 가까운 시군구 찾기
+   * @returns {string|null} 시군구 코드
+   */
+  findNearestRegion() {
+    const view = this.map.getView();
+    const center = view.getCenter();
+    const centerLonLat = ol.proj.toLonLat(center);
+    const centerLng = centerLonLat[0];
+    const centerLat = centerLonLat[1];
+
+    let nearestCode = null;
+    let minDistance = Infinity;
+
+    for (const [code, coords] of Object.entries(REGION_COORDS)) {
+      if (code === 'default') continue;
+
+      // 유클리드 거리 계산 (간단한 근사치)
+      const distance = Math.sqrt(
+        Math.pow(coords.lng - centerLng, 2) +
+        Math.pow(coords.lat - centerLat, 2)
+      );
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestCode = code;
+      }
+    }
+
+    return nearestCode;
   }
 
   /**

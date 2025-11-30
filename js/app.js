@@ -335,6 +335,25 @@ class App {
       });
     }
 
+    // 에러 닫기 버튼
+    const closeErrorBtn = document.getElementById('closeErrorBtn');
+    if (closeErrorBtn) {
+      closeErrorBtn.addEventListener('click', () => {
+        document.getElementById('errorState')?.classList.add('hidden');
+      });
+    }
+
+    // 에러창 바깥 클릭 시 닫기
+    const errorState = document.getElementById('errorState');
+    if (errorState) {
+      errorState.addEventListener('click', (e) => {
+        // 배경(자기 자신) 클릭 시에만 닫기 (내부 요소 클릭은 제외)
+        if (e.target === errorState) {
+          errorState.classList.add('hidden');
+        }
+      });
+    }
+
     // 지도 초기화 버튼
     const resetMapBtn = document.getElementById('resetMap');
     if (resetMapBtn) {
@@ -442,9 +461,9 @@ class App {
       togglePanelBtn.classList.remove('hidden');
       togglePanelBtn.classList.add('active');
 
-      // 지도에 마커 표시 (첫 번째 시군구 기준)
+      // 지도에 마커 표시 (현재 화면 검색 모드 - 뷰 유지)
       if (visibleRegions.length > 0) {
-        await this.mapView.addTradeMarkers(this.trades, visibleRegions[0]);
+        await this.mapView.addTradeMarkers(this.trades, visibleRegions[0], 'keepView');
       }
 
     } catch (error) {
@@ -520,7 +539,7 @@ class App {
       togglePanelBtn.classList.add('active');
 
       // 지도에 마커 표시
-      await this.mapView.addTradeMarkers(this.trades, params.sigungu);
+      await this.mapView.addTradeMarkers(this.trades, params.sigungu, false);
 
     } catch (error) {
       hideLoading();
