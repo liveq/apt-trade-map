@@ -26,13 +26,17 @@ export async function onRequestGet({ request, env }) {
   url.searchParams.set('size', '1');
   url.searchParams.set('key', env.VWORLD_API_KEY);
 
-  const upstream = await fetch(url, {
-    headers: { 'Referer': 'https://apt.baal.co.kr/' },
-    cf: { cacheTtl: 86400, cacheEverything: true },
-  });
-  const body = await upstream.text();
+  let upstream, body;
+  try {
+    upstream = await fetch(url, { headers: { 'Referer': 'https://apt.baal.co.kr/' } });
+    body = await upstream.text();
+  } catch (_) {
+    return new Response(JSON.stringify({ response: { status: 'ERROR' } }), {
+      status: 502, headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
+  }
   return new Response(body, {
-    status: upstream.status,
+    status: upstream.ok ? 200 : upstream.status,
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=86400' },
   });
 }
