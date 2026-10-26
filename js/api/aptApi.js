@@ -2,8 +2,8 @@
  * 아파트 실거래가 API 연동
  */
 
-const API_KEY = '096e8755105adfd94fadc91447e890d57376f6f62cde0d7b4e2235f2497d256b';
-const API_ENDPOINT = 'https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev';
+// 국토부 실거래가 프록시(같은 출처). serviceKey 는 서버에서 주입되므로 프론트에 키가 없다.
+const API_ENDPOINT = '/api/molit';
 
 /**
  * 아파트 실거래가 조회
@@ -14,10 +14,9 @@ const API_ENDPOINT = 'https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/get
  */
 export async function fetchApartmentTrades({ lawdCd, dealYmd }) {
   try {
-    const url = new URL(API_ENDPOINT);
-    url.searchParams.append('serviceKey', API_KEY);
-    url.searchParams.append('LAWD_CD', lawdCd);
-    url.searchParams.append('DEAL_YMD', dealYmd);
+    const url = new URL(API_ENDPOINT, location.origin);
+    url.searchParams.append('lawdCd', lawdCd);
+    url.searchParams.append('dealYmd', dealYmd);
     url.searchParams.append('numOfRows', '1000'); // 최대 1000건
     url.searchParams.append('pageNo', '1');
 

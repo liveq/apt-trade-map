@@ -38,3 +38,9 @@ temp/
 
 # API Keys (if stored locally)
 config/api-keys.json
+
+# local dev secrets
+.dev.vars
+
+# wrangler local
+.wrangler/

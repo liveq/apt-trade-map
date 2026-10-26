@@ -1,6 +1,6 @@
 /**
- * VWorld 지오코딩 API (JSONP 방식 - CORS 우회)
- * 주소 → 좌표 변환
+ * VWorld 지오코딩 (주소 → 좌표)
+ * ※ 키는 서버(/api/vsearch)에서 주입된다. 같은 출처라 JSONP 대신 일반 fetch 사용.
  */
 
 import { CONFIG } from '../config.js';
@@ -8,49 +8,8 @@ import { CONFIG } from '../config.js';
 // 지오코딩 결과 캐시 (같은 주소 중복 호출 방지)
 const geocodeCache = new Map();
 
-// JSONP 콜백 카운터
-let jsonpCounter = 0;
-
 /**
- * JSONP 요청
- */
-function jsonpRequest(url) {
-  return new Promise((resolve, reject) => {
-    const callbackName = `vworldCallback_${++jsonpCounter}`;
-    const script = document.createElement('script');
-
-    // 타임아웃 설정 (1.5초)
-    const timeout = setTimeout(() => {
-      cleanup();
-      resolve(null);
-    }, 1500);
-
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[callbackName];
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    }
-
-    window[callbackName] = (data) => {
-      cleanup();
-      resolve(data);
-    };
-
-    script.src = `${url}&callback=${callbackName}`;
-    script.onerror = () => {
-      console.error(`[JSONP 오류] ${callbackName}`);
-      cleanup();
-      resolve(null); // reject 대신 null 반환
-    };
-
-    document.head.appendChild(script);
-  });
-}
-
-/**
- * 장소 검색으로 좌표 찾기 (VWorld Search API)
+ * 장소 검색으로 좌표 찾기 (VWorld Search API 프록시)
  * @param {string} query - 검색어 (예: "자양동 현대아파트")
  * @returns {Promise<{lat: number, lng: number}|null>}
  */
@@ -63,21 +22,23 @@ export async function geocodeAddress(query) {
   }
 
   try {
-    const baseUrl = 'https://api.vworld.kr/req/search';
-    const params = new URLSearchParams({
-      service: 'search',
-      request: 'search',
-      version: '2.0',
-      crs: 'epsg:4326',
-      query: query,
-      type: 'place',
-      key: CONFIG.VWORLD_API_KEY,
-      format: 'json',
-      size: '1'
-    });
+    const url = new URL(`${CONFIG.API_BASE}/vsearch`, location.origin);
+    url.searchParams.set('query', query);
 
-    const url = `${baseUrl}?${params.toString()}`;
-    const data = await jsonpRequest(url);
+    // 타임아웃 설정 (2초)
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+
+    let data = null;
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      if (response.ok) {
+        data = await response.json();
+      }
+    } catch (_) {
+      clearTimeout(timer);
+    }
 
     // 응답이 없으면 실패
     if (!data) {

@@ -24,9 +24,9 @@ export class MapView {
    * 지도 초기화
    */
   init() {
-    // VWorld 타일 소스
+    // VWorld 타일 소스 (키는 서버 주입 — 같은 출처 프록시)
     const vworldSource = new ol.source.XYZ({
-      url: `https://api.vworld.kr/req/wmts/1.0.0/${CONFIG.VWORLD_API_KEY}/Base/{z}/{y}/{x}.png`,
+      url: CONFIG.VWORLD_TILE_URL,
       crossOrigin: 'anonymous'
     });
 
