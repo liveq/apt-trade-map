@@ -1,5 +1,5 @@
 /**
- * MapView Component - OpenLayers + VWorld
+ * MapView Component - OpenLayers + OSM(키 없는 베이스 타일)
  * 대중적인 부동산 앱 스타일 (네이버 부동산, 직방, 다방)
  */
 
@@ -24,11 +24,9 @@ export class MapView {
    * 지도 초기화
    */
   init() {
-    // VWorld 타일 소스 (키는 서버 주입 — 같은 출처 프록시)
-    const vworldSource = new ol.source.XYZ({
-      url: CONFIG.VWORLD_TILE_URL,
-      crossOrigin: 'anonymous'
-    });
+    // 베이스 타일: 키가 필요 없는 OSM 사용(VWorld 키 제거).
+    // ※ VWorld 한국 베이스로 되돌리려면 도메인 제한 키 발급 후 XYZ 소스로 교체.
+    const vworldSource = new ol.source.OSM();
 
     // 타일 레이어
     const tileLayer = new ol.layer.Tile({
