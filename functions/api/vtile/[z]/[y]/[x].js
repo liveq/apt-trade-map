@@ -26,17 +26,17 @@ export async function onRequestGet({ params, env }) {
     if (hit) return hit;
   } catch (_) { /* 캐시 조회 실패는 무시 */ }
 
-  let upstream;
+  const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36';
+  let upstream, buf;
   try {
     upstream = await fetch(
       `https://api.vworld.kr/req/wmts/1.0.0/${env.VWORLD_API_KEY}/Base/${z}/${y}/${x}.png`,
-      { headers: { 'Referer': 'https://apt.baal.co.kr/' } }
+      { headers: { 'User-Agent': UA, 'Accept': 'image/png,*/*', 'Referer': 'https://apt.baal.co.kr/' }, signal: AbortSignal.timeout(8000) }
     );
+    buf = await upstream.arrayBuffer();
   } catch (_) {
     return blank(502);
   }
-
-  const buf = await upstream.arrayBuffer();
   const resp = new Response(buf, {
     status: upstream.ok ? 200 : upstream.status,
     headers: {
